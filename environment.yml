@@ -1,0 +1,23 @@
+name: asr_env
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pytorch
+  - torchvision
+  - torchaudio
+  - pytorch-cuda=11.8
+  - transformers
+  - datasets
+  - librosa
+  - soundfile
+  - numpy
+  - pandas
+  - wandb
+  - evaluate
+  - jiwer
+  - tqdm
