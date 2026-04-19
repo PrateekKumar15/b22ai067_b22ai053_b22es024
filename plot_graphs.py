@@ -38,7 +38,7 @@ def generate_qrcode():
     """Generates a QR code image to place into the poster"""
     print("Generating QR code...")
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
-    qr.add_data("https://github.com/PrateekKumar15/Speech_Project.git")
+    qr.add_data("https://github.com/PrateekKumar15/b22ai067_b22ai053_b22es024.git")
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
     img.save('qrcode.png')
