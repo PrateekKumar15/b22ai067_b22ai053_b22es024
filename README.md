@@ -6,7 +6,7 @@
 - Manas Chechani (B22AI053)
 - Prateek Kumar (B22ES024)
 - Raj Vijayvargiya (B22AI067)
-*Indian Institute of Technology Jodhpur | Speech and Audio Processing Course*
+*Indian Institute of Technology Jodhpur | Speech Understanding Course*
 
 ---
 
