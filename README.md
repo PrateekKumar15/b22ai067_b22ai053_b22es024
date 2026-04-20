@@ -1,114 +1,294 @@
-# Noise-Robust Automatic Speech Recognition using Wav2Vec 2.0
+# Noise-Robust ASR with Wav2Vec2
 
-*A framework bridging the gap between laboratory ASR metrics and real-world acoustic challenges.*
+This project builds a noise-robust automatic speech recognition (ASR) pipeline on top of Wav2Vec2, with custom data augmentation and a custom model head designed to improve transcription quality in noisy environments.
 
-**Authors**:
+Authors:
 - Manas Chechani (B22AI053)
 - Prateek Kumar (B22ES024)
 - Raj Vijayvargiya (B22AI067)
-*Indian Institute of Technology Jodhpur | Speech Understanding Course*
 
----
+Institute:
+- Indian Institute of Technology Jodhpur
 
-## 📌 Abstract & Motivation
-State-of-the-Art (SOTA) ASR systems achieve near-human transcription on clean data but suffer catastrophic performance drops in highly reverberant or low-SNR conditions. Non-stationary noise (traffic, babble) destructively interferes with vocal formants, drastically increasing the Word Error Rate (WER). 
+## 1) What This Project Does (Complete Description)
 
-This project solves this by anchoring **dynamic noise injection** natively within a **multi-head cross-attention framework**, mapping noisy features straight to learned linguistic contexts using a fine-tuned HuggingFace Wav2Vec 2.0 Base Model.
+Modern ASR systems often perform very well on clean speech but degrade significantly under real-world conditions such as traffic noise, crowd noise, and low signal-to-noise ratio (SNR). This project focuses on making ASR more robust by combining:
 
----
+- Dynamic noise mixing during data preparation
+- A custom cross-attention filtering block inside a Wav2Vec2-style model
+- CTC-based training for transcription
+- Evaluation utilities for demographic parity and acoustic stress testing
+- Visual and demo assets for reporting and presentation
 
-## 📂 Project Structure
+In practical terms, the full project aims to answer:
+
+- Can we improve transcription stability when audio quality drops?
+- How does model performance change as SNR decreases?
+- Does error vary across metadata groups such as gender or dialect/accent?
+
+## 2) End-to-End Pipeline
+
+The project pipeline is:
+
+1. Data preparation and augmentation
+2. Model construction and training
+3. Evaluation under clean and noisy settings
+4. Visualization and demo
+
+### 2.1 Data Preparation
+
+- Input speech can come from clean datasets (for example LibriSpeech).
+- Noise samples can come from datasets such as MS-SNSD.
+- The preprocessing pipeline in `src/data/preprocessor.py`:
+  - resamples to 16 kHz
+  - converts to mono if needed
+  - mixes noise at random SNR between configurable bounds
+  - normalizes mixed output to avoid clipping
+
+Noise scaling follows standard SNR control:
+
+$$
+  SNR_{dB} = 10 \log_{10}(P_{signal} / P_{noise})
+$$
+
+### 2.2 Model
+
+The core model in `src/models/robust_wav2vec2.py` uses:
+
+- Wav2Vec2 feature extractor and encoder components
+- A custom `CrossAttentionFilter`
+- Dropout + linear projection head for token logits
+- CTC loss for alignment-free sequence transcription
+
+High-level flow:
+
+1. Raw audio -> convolutional feature extractor
+2. Feature projection -> hidden states
+3. Cross-attention filtering of hidden states
+4. Transformer encoder processing
+5. Linear LM head -> logits
+6. CTC loss when labels are provided
+
+### 2.3 Training Strategy
+
+Training utilities in `src/training/trainer.py` provide:
+
+- `DataCollatorCTCWithPadding` for dynamic batch padding
+- Tri-stage learning-rate scheduler:
+  - Warmup (linear increase)
+  - Hold (constant)
+  - Exponential decay
+
+### 2.4 Evaluation and Analysis
+
+`evaluate.py` contains skeletons/utilities for:
+
+- Demographic parity evaluation (grouped WER statistics)
+- Acoustic stress testing over multiple SNR levels
+
+This is intended to quantify robustness and fairness behavior, not just average clean-set WER.
+
+## 3) Repository Structure
 
 ```text
 Speech Project/
-│
-├── README.md                      # Project documentation
-├── environment.yml                # Conda environment manifest
-├── .gitignore                     # Git tracking exclusions
-│
-├── src/                           # Core PyTorch Modules
-│   ├── data/
-│   │   ├── dataset.py             # Dataloaders for LibriSpeech, MS-SNSD & Common Voice
-│   │   └── preprocessor.py        # 16kHz resampling, SpecAugment, and Dynamic SNR mixing
-│   │
-│   ├── models/
-│   │   └── robust_wav2vec2.py     # Custom RobustWav2Vec2ForCTC with Cross-Attention Filter
-│   │
-│   └── training/
-│       └── trainer.py             # Tri-stage LR scheduler and CTC Padding Collator
-│
-├── test_run.py                    # Dry-run validation script for the model constraints
-├── train.py                       # Main training hub initiating HuggingFace Trainer
-├── evaluate.py                    # Fairness analytics & SNR Acoustic Stress Testing
-└── plot_graphs.py                 # Generates spectrogram visuals and QR code assets
+|- README.md
+|- environment.yml
+|- Speech project master code.ipynb
+|- train.py
+|- evaluate.py
+|- test_run.py
+|- plot_graphs.py
+|- src/
+|  |- data/
+|  |  |- dataset.py
+|  |  |- preprocessor.py
+|  |- models/
+|  |  |- robust_wav2vec2.py
+|  |- training/
+|     |- trainer.py
 ```
 
----
+File purpose summary:
 
-## 🚀 Setup Instructions
+- `train.py`: baseline training entry point using Hugging Face `Trainer`
+- `evaluate.py`: evaluation utility scaffold for fairness + SNR stress testing
+- `test_run.py`: fast architecture sanity test (forward pass + CTC loss)
+- `plot_graphs.py`: utility to create spectrogram and QR code assets
+- `Speech project master code.ipynb`: complete Colab-oriented workflow (data, patching, training, evaluation, demo)
 
-1. **Clone the Repository**
-   ```bash
-   git clone https://github.com/iit-jodhpur/noise-robust-wav2vec2.git
-   cd noise-robust-wav2vec2
-   ```
+## 4) Environment Setup (Local)
 
-2. **Initialize the Environment**
-   We have provided a fully reproducible YAML file for Conda.
-   ```bash
-   conda env create -f environment.yml
-   conda activate asr_env
-   ```
-   *(Alternatively, if your environment is already configured, you can just install standard requirements via `pip install torch torchaudio transformers datasets`)*
+### Option A: Conda (recommended)
 
----
+```bash
+conda env create -f environment.yml
+conda activate asr_env
+```
 
-## 💻 How to Run the Project (In Depth Guide)
+### Option B: pip + venv
 
-This section provides a detailed step-by-step guide to executing each script in the pipeline, explaining what happens under the hood and what inputs/outputs to expect.
+```bash
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate   # Windows PowerShell
 
-### 1. Validate the Architecture (`test_run.py`)
-**Purpose**: Before downloading heavy datasets or initiating long training loops, this script ensures your environment supports the architectural modifications.
-- **Action**: Run the command below to perform a fast forward-pass dummy check.
-  ```bash
-  python test_run.py 
-  ```
-- **What it does**: It simulates a mini-batch with random tensors mirroring realistic speech features. It verifies that the `RobustWav2Vec2ForCTC` base class (with cross-attention modifications) correctly computes CTC Loss.
-- **Expected Output**: A terminal confirmation that the loss computed successfully, ensuring no memory leaks or dimension mismatches exist in the custom pipeline.
+pip install torch torchvision torchaudio transformers datasets librosa soundfile numpy pandas wandb evaluate jiwer tqdm qrcode
+```
 
-### 2. Generate Visual Assets (`plot_graphs.py`)
-**Purpose**: Generates visual comparisons of acoustic features under degrading Signal-to-Noise Ratio (SNR) environments, as well as necessary project QR assets.
-- **Action**: Execute the visualization script.
-  ```bash
-  python plot_graphs.py
-  ```
-- **What it does**: 
-  - Uses `matplotlib` to generate and save `spectrogram.png`, which plots a side-by-side Mel-Spectrogram comparison. On the left, it plots clean acoustic features, and on the right, it simulates acoustic degradation by mixing in Gaussian noise (low SNR).
-  - Uses `qrcode` to generate `qrcode.png` containing a link to this GitHub project for posters or presentations.
-- **Expected Output**: Two image files (`spectrogram.png`, `qrcode.png`) saved directly into your root directory.
+## 5) How To Run Locally
 
-### 3. Model Training Pipeline (`train.py`)
-**Purpose**: Complete end-to-end training procedure integrating our custom HuggingFace datasets and `Trainer`.
-- **Preparation needed**: Open `train.py` and modify the paths in `RobustSpeechDataset` (e.g. `librispeech_paths` and `noise_paths`) to match the absolute directories of your LibriSpeech corpus and MS-SNSD background noise collection.
-- **Action**: Start model training.
-  ```bash
-  python train.py
-  ```
-- **What it does**: 
-  - Initializes `facebook/wav2vec2-base` from HuggingFace, wrapped with our custom `RobustWav2Vec2ForCTC`. The core CNN feature extractor is frozen to save computational overhead.
-  - SpecAugment parameters (Time and Feature masking) are rigorously enforced to build robustness against partial signal distortion.
-  - Data batches are properly structured using `DataCollatorCTCWithPadding`.
-  - Utilizes an `AdamW` optimizer ($\lambda=0.01$) alongside a Tri-stage learning rate scheduler (warmup, hold, exponential decay) peaking at $\eta=3 \times 10^{-5}$.
-- **Expected Output**: Granular training logs printing to the terminal at `logging_steps=100`. Resulting model weights and optimizer progress checkpoints are saved (every 500 steps) directly to the `./wav2vec2-robust/` directory.
+### 5.1 Quick sanity check
 
-### 4. Responsible AI Evaluation (`evaluate.py`)
-**Purpose**: Evaluates your fine-tuned model against ethical bias metrics and absolute acoustic stress tests to validate real-world readiness.
-- **Preparation needed**: Ensure you have model weights stored inside `./wav2vec2-robust`. You must uncomment the loading logic in `evaluate.py` and define your data stream for the Mozilla Common Voice Evaluation Dataset.
-- **Action**: Trigger the integrated evaluators.
-  ```bash
-  python evaluate.py
-  ```
-- **What it does**:
-  - **Demographic Parity Tracking**: Evaluates the model sequentially, computing the Word Error Rate (WER). Iterates via metadata grouping to isolate WER by precise demographics (e.g. `gender`, `dialect`) through the `evaluate_demographic_parity` function utilizing pandas mapping.
-  - **Acoustic Stress Testing**: Synthetically maps acoustic environments at various low-SNR thresholds with `acoustic_stress_test` to detect the exact drop-off points where WER decays exponentially.
-- **Expected Output**: Generates two detailed summary tables directly out to your console: a Demographic Parity Report indicating exact acoustic biases/WER across genders and dialects, mapping alongside the algorithmic Acoustic Stress Report.
+```bash
+python test_run.py
+```
+
+Expected:
+- model forward pass runs
+- loss/logits exist
+- no crash in custom architecture path
+
+### 5.2 Generate visuals
+
+```bash
+python plot_graphs.py
+```
+
+Expected outputs in project root:
+- `spectrogram.png`
+- `qrcode.png`
+
+### 5.3 Training
+
+```bash
+python train.py
+```
+
+Important note:
+- Current `train.py` uses placeholder dummy paths and dummy transcripts by default.
+- Before real training, replace dummy paths with real dataset paths or connect it to a Hugging Face dataset flow.
+
+Training outputs:
+- checkpoints and training artifacts in `./wav2vec2-robust`
+
+### 5.4 Evaluation
+
+```bash
+python evaluate.py
+```
+
+Important note:
+- `evaluate.py` currently contains scaffold logic and commented model-loading blocks.
+- You must provide real trained checkpoint paths and real evaluation dataset objects before running full evaluation.
+
+## 6) Running on Cloud (Google Colab) Using `Speech project master code.ipynb`
+
+This is the most complete runnable workflow in the repository for cloud execution.
+
+The notebook includes:
+
+- dependency installation
+- repository cloning inside Colab
+- auto-patching of project files for compatibility
+- streamed LibriSpeech loading from Hugging Face
+- MS-SNSD noise download
+- noisy test-set creation at multiple SNR levels
+- model training
+- comparison against vanilla Wav2Vec2 and Whisper-base
+- stress-test plots
+- optional Gradio demo
+
+### 6.1 Open notebook in Colab
+
+1. Open Google Colab.
+2. Set runtime: GPU (T4 or better).
+3. Open `Speech project master code.ipynb`.
+
+Optional direct GitHub URL pattern:
+
+```text
+https://colab.research.google.com/github/<owner>/<repo>/blob/main/Speech%20project%20master%20code.ipynb
+```
+
+### 6.2 Run cells in order
+
+The notebook is structured in four practical blocks:
+
+1. Data preparation notebook block
+2. Training notebook block
+3. Evaluation and SOTA comparison block
+4. Interactive Gradio demo block
+
+Do not skip order. Later blocks depend on files generated earlier.
+
+### 6.3 What each notebook block produces
+
+Block 1 (data):
+- creates `/content/asr_data`
+- streams LibriSpeech samples
+- clones MS-SNSD and prepares noise files
+- builds noisy manifests and saves clean/noisy visualizations
+
+Block 2 (training):
+- initializes robust model and processor
+- creates datasets/collator/scheduler
+- trains model
+- saves model artifacts to `/content/wav2vec2_robust_final`
+- saves training plots and zipped model
+
+Block 3 (evaluation):
+- loads robust model, vanilla Wav2Vec2, and Whisper-base
+- evaluates WER at Clean, 15 dB, 5 dB, 0 dB
+- generates comparison tables and plots
+- saves results to `/content/results`
+
+Block 4 (demo):
+- launches Gradio UI for live audio transcription comparison
+- lets you test clean/noisy conditions interactively
+
+### 6.4 Colab runtime tips
+
+- Keep runtime on GPU throughout training/evaluation.
+- If Colab disconnects, re-run setup cells and restore saved artifacts.
+- Download key artifacts after each major phase:
+  - model zip
+  - results zip
+  - generated plots
+
+### 6.5 Important compatibility note
+
+The notebook patches some repository source files at runtime to handle library-version differences and training/evaluation edge cases. This is intentional in the notebook workflow.
+
+If your local scripts and notebook behavior differ, treat the notebook as the cloud reference pipeline.
+
+## 7) Expected Outputs
+
+Depending on how much of the pipeline you run, you should obtain:
+
+- trained checkpoints for robust Wav2Vec2
+- training curves (loss/WER)
+- WER comparison across noise levels
+- acoustic stress-test curve
+- spectrogram visualizations
+- optional interactive Gradio demo link
+
+## 8) Current Limitations
+
+- `train.py` in repo root is a minimal baseline with dummy dataset paths by default.
+- `evaluate.py` is a scaffold and requires real dataset wiring before full use.
+- Full end-to-end reproducibility in cloud is currently best represented by `Speech project master code.ipynb`.
+
+## 9) Recommended Usage Path
+
+If your goal is to run the complete project now:
+
+1. Use Google Colab with `Speech project master code.ipynb`.
+2. Run all cells sequentially.
+3. Download final model and result artifacts.
+
+If your goal is codebase cleanup and productionization:
+
+1. Port notebook patches back into source files in `src/`.
+2. Replace dummy dataset paths in `train.py` with real data loaders.
+3. Complete model-loading and dataset hooks in `evaluate.py`.
