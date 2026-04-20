@@ -3,11 +3,13 @@
 This project builds a noise-robust automatic speech recognition (ASR) pipeline on top of Wav2Vec2, with custom data augmentation and a custom model head designed to improve transcription quality in noisy environments.
 
 Authors:
+
 - Manas Chechani (B22AI053)
 - Prateek Kumar (B22ES024)
 - Raj Vijayvargiya (B22AI067)
 
 Institute:
+
 - Indian Institute of Technology Jodhpur
 
 ## 1) What This Project Does (Complete Description)
@@ -145,6 +147,7 @@ python test_run.py
 ```
 
 Expected:
+
 - model forward pass runs
 - loss/logits exist
 - no crash in custom architecture path
@@ -156,6 +159,7 @@ python plot_graphs.py
 ```
 
 Expected outputs in project root:
+
 - `spectrogram.png`
 - `qrcode.png`
 
@@ -166,10 +170,12 @@ python train.py
 ```
 
 Important note:
+
 - Current `train.py` uses placeholder dummy paths and dummy transcripts by default.
 - Before real training, replace dummy paths with real dataset paths or connect it to a Hugging Face dataset flow.
 
 Training outputs:
+
 - checkpoints and training artifacts in `./wav2vec2-robust`
 
 ### 5.4 Evaluation
@@ -179,6 +185,7 @@ python evaluate.py
 ```
 
 Important note:
+
 - `evaluate.py` currently contains scaffold logic and commented model-loading blocks.
 - You must provide real trained checkpoint paths and real evaluation dataset objects before running full evaluation.
 
@@ -225,12 +232,14 @@ Do not skip order. Later blocks depend on files generated earlier.
 ### 6.3 What each notebook block produces
 
 Block 1 (data):
+
 - creates `/content/asr_data`
 - streams LibriSpeech samples
 - clones MS-SNSD and prepares noise files
 - builds noisy manifests and saves clean/noisy visualizations
 
 Block 2 (training):
+
 - initializes robust model and processor
 - creates datasets/collator/scheduler
 - trains model
@@ -238,12 +247,14 @@ Block 2 (training):
 - saves training plots and zipped model
 
 Block 3 (evaluation):
+
 - loads robust model, vanilla Wav2Vec2, and Whisper-base
 - evaluates WER at Clean, 15 dB, 5 dB, 0 dB
 - generates comparison tables and plots
 - saves results to `/content/results`
 
 Block 4 (demo):
+
 - launches Gradio UI for live audio transcription comparison
 - lets you test clean/noisy conditions interactively
 
