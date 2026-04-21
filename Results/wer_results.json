@@ -1,0 +1,20 @@
+{
+  "Vanilla Wav2Vec2": {
+    "Clean": 3.87,
+    "SNR 15dB": 5.32,
+    "SNR 5dB": 20.09,
+    "SNR 0dB": 47.39
+  },
+  "RobustWav2Vec2 (Ours)": {
+    "Clean": 3.42,
+    "SNR 15dB": 4.68,
+    "SNR 5dB": 13.51,
+    "SNR 0dB": 34.14
+  },
+  "Whisper-base (SOTA)": {
+    "Clean": 4.59,
+    "SNR 15dB": 5.41,
+    "SNR 5dB": 8.47,
+    "SNR 0dB": 25.5
+  }
+}
